@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Hydrew</title>
+        <style>
+            /* =========================================================
+           BASE
+        ========================================================= */
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+            }
+
+            :root {
+                --bg: #07070c;
+                --fg: #f5f5f7;
+                --muted: rgba(245, 245, 247, 0.45);
+                --dim: rgba(245, 245, 247, 0.32);
+                --line: rgba(255, 255, 255, 0.09);
+                --gap: 26px;
+                --card-w: clamp(280px, 28vw, 380px);
+
+                /* Dynamic colors */
+                --accent-a: #a78bfa;
+                --accent-b: #22d3ee;
+            }
+
+            html {
+                scroll-behavior: smooth;
+            }
+
+            body {
+                margin: 0;
+                min-height: 100%;
+                background: var(--bg);
+                color: var(--fg);
+                font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
+                -webkit-font-smoothing: antialiased;
+                overflow-x: hidden;
+            }
+
+            /* =========================================================
+           AMBIENT BACKGROUND (Dynamic)
+        ========================================================= */
+            .bg {
+                position: fixed;
+                inset: 0;
+                z-index: 0;
+                pointer-events: none;
+                overflow: hidden;
+            }
+
+            .bg__layer {
+                position: absolute;
+                inset: -8%;
+                opacity: 0;
+                transition: opacity 1.2s ease;
+                will-change: opacity, transform;
+                animation: bgDrift 22s ease-in-out infinite alternate;
+                background:
+                    radial-gradient(75vw 65vh at 10% -8%, var(--c1, rgba(120, 60, 255, 0.22)), transparent 68%),
+                    radial-gradient(70vw 62vh at 92% 106%, var(--c2, rgba(0, 200, 255, 0.16)), transparent 68%),
+                    radial-gradient(55vw 55vh at 50% 52%, var(--c3, rgba(255, 255, 255, 0.03)), transparent 72%);
+            }
+
+            .bg__blob {
+                position: absolute;
+                border-radius: 50%;
+                filter: blur(90px);
+                opacity: 0.4;
+                will-change: transform;
+                transition: opacity 1.5s ease;
+            }
+
+            .bg__blob--1 {
+                width: 60vw;
+                height: 60vw;
+                top: -22vw;
+                left: -14vw;
+                background: radial-gradient(circle, rgba(139, 92, 246, 0.55), transparent 68%);
+                animation: drift1 26s ease-in-out infinite alternate;
+            }
+
+            .bg__blob--2 {
+                width: 54vw;
+                height: 54vw;
+                bottom: -20vw;
+                right: -12vw;
+                background: radial-gradient(circle, rgba(34, 211, 238, 0.42), transparent 68%);
+                animation: drift2 30s ease-in-out infinite alternate;
+            }
+
+            .bg__layer.is-on {
+                opacity: 1;
+            }
+
+            .bg__blob.is-hidden {
+                opacity: 0;
+            }
+
+            @keyframes bgDrift {
+                0% {
+                    transform: translate3d(-1.4%, -1%, 0) scale(1.02);
+                }
+
+                100% {
+                    transform: translate3d(1.6%, 1.4%, 0) scale(1.07);
+                }
+            }
+
+            @keyframes drift1 {
+                0% {
+                    transform: translate3d(0, 0, 0) scale(1);
+                }
+
+                100% {
+                    transform: translate3d(7vw, 6vh, 0) scale(1.15);
+                }
+            }
+
+            @keyframes drift2 {
+                0% {
+                    transform: translate3d(0, 0, 0) scale(1.05);
+                }
+
+                100% {
+                    transform: translate3d(-8vw, -5vh, 0) scale(0.92);
+                }
+            }
+
+            .bg__grain {
+                position: absolute;
+                inset: 0;
+                opacity: 0.045;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+                mix-blend-mode: overlay;
+            }
+
+            /* =========================================================
+           NAV
+        ========================================================= */
+            .nav {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 20;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 20px;
+                padding: 26px clamp(20px, 5vw, 56px);
+                background: linear-gradient(to bottom, rgba(7, 7, 12, 0.85), rgba(7, 7, 12, 0));
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 13px;
+                font-weight: 600;
+                letter-spacing: 0.28em;
+                text-transform: uppercase;
+            }
+
+            .brand .dot {
+                width: 9px;
+                height: 9px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+                box-shadow: 0 0 16px var(--accent-a);
+                transition: background 0.6s ease, box-shadow 0.6s ease;
+            }
+
+            .hint {
+                font-size: 11.5px;
+                letter-spacing: 0.16em;
+                text-transform: uppercase;
+                color: var(--muted);
+                transition: color 0.4s ease;
+            }
+
+            /* =========================================================
+           HERO & JOURNEY
+        ========================================================= */
+            main {
+                position: relative;
+                z-index: 1;
+            }
+
+            .hero {
+                max-width: 960px;
+                margin: 0 auto;
+                padding: clamp(100px, 16vh, 180px) 24px clamp(60px, 8vh, 100px);
+                text-align: center;
+            }
+
+            .eyebrow {
+                margin: 0 0 18px;
+                font-size: 11.5px;
+                font-weight: 700;
+                letter-spacing: 0.42em;
+                text-transform: uppercase;
+                color: var(--dim);
+            }
+
+            .hero h1 {
+                margin: 0;
+                font-size: clamp(36px, 7vw, 78px);
+                font-weight: 800;
+                line-height: 1.03;
+                letter-spacing: -0.035em;
+            }
+
+            .hero h1 .grad {
+                background: linear-gradient(100deg, var(--accent-a), var(--accent-b) 48%, #f472b6);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+                transition: background 0.6s ease;
+            }
+
+            .hero__lede {
+                max-width: 60ch;
+                margin: 26px auto 0;
+                font-size: clamp(14.5px, 1.5vw, 17px);
+                line-height: 1.7;
+                color: var(--muted);
+            }
+
+            .journey {
+                position: relative;
+                max-width: 1300px;
+                margin: 0 auto;
+                height: clamp(1500px, 190vh, 2100px);
+            }
+
+            .journey__svg {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                overflow: visible;
+                pointer-events: none;
+            }
+
+            .path--ghost {
+                stroke: rgba(255, 255, 255, 0.10);
+                stroke-width: 2;
+                stroke-linecap: round;
+                stroke-dasharray: 1.5 12;
+            }
+
+            .path--draw {
+                stroke: url(#pathGrad);
+                stroke-width: 2.6;
+                stroke-linecap: round;
+                filter: drop-shadow(0 0 9px rgba(167, 139, 250, 0.55));
+            }
+
+            .traveler {
+                position: absolute;
+                left: 50%;
+                top: 0;
+                width: 14px;
+                height: 14px;
+                margin: -7px 0 0 -7px;
+                z-index: 5;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.4s ease;
+            }
+
+            .traveler::before {
+                content: "";
+                position: absolute;
+                inset: -12px;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(167, 139, 250, 0.55), transparent 70%);
+                animation: pulse 2.4s ease-in-out infinite;
+            }
+
+            .traveler__core {
+                position: absolute;
+                inset: 3px;
+                border-radius: 50%;
+                background: #fff;
+                box-shadow: 0 0 14px rgba(255, 255, 255, 0.95), 0 0 32px rgba(167, 139, 250, 0.85);
+            }
+
+            @keyframes pulse {
+
+                0%,
+                100% {
+                    transform: scale(0.8);
+                    opacity: 0.5;
+                }
+
+                50% {
+                    transform: scale(1.4);
+                    opacity: 0.9;
+                }
+            }
+
+            .milestone {
+                position: absolute;
+                left: var(--x);
+                top: var(--y);
+                width: 0;
+                height: 0;
+            }
+
+            .milestone__dot {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 14px;
+                height: 14px;
+                margin: -7px 0 0 -7px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.10);
+                border: 1px solid rgba(255, 255, 255, 0.26);
+                transition: background 0.6s ease, box-shadow 0.6s ease, border-color 0.6s ease, transform 0.6s ease;
+            }
+
+            .milestone.is-lit .milestone__dot {
+                background: #fff;
+                border-color: #fff;
+                transform: scale(1.08);
+                box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.09), 0 0 26px rgba(167, 139, 250, 0.95);
+            }
+
+            .milestone__card {
+                position: absolute;
+                top: 0;
+                width: min(360px, 30vw);
+                padding: 22px 24px;
+                border-radius: 22px;
+                background: linear-gradient(155deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.022));
+                border: 1px solid rgba(255, 255, 255, 0.10);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                box-shadow: 0 30px 64px -32px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.13);
+                opacity: 0;
+                transition: opacity 0.75s ease, transform 0.75s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.75s ease, box-shadow 0.75s ease;
+            }
+
+            .milestone--left .milestone__card {
+                right: 62px;
+                transform: translate(26px, -50%);
+            }
+
+            .milestone--right .milestone__card {
+                left: 62px;
+                transform: translate(-26px, -50%);
+            }
+
+            .milestone.is-lit .milestone__card {
+                opacity: 1;
+                transform: translate(0, -50%);
+                border-color: rgba(255, 255, 255, 0.18);
+                box-shadow: 0 34px 80px -34px rgba(0, 0, 0, 0.95), 0 0 60px -24px rgba(167, 139, 250, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+            }
+
+            .milestone__card::after {
+                content: "";
+                position: absolute;
+                top: 50%;
+                width: 62px;
+                height: 1px;
+                background: linear-gradient(90deg, rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.04));
+            }
+
+            .milestone--left .milestone__card::after {
+                right: -62px;
+                background: linear-gradient(270deg, rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.04));
+            }
+
+            .milestone--right .milestone__card::after {
+                left: -62px;
+            }
+
+            .milestone__year {
+                display: inline-block;
+                margin-bottom: 10px;
+                font-size: 10.5px;
+                font-weight: 700;
+                letter-spacing: 0.24em;
+                text-transform: uppercase;
+                padding: 6px 11px;
+                border-radius: 999px;
+                color: rgba(255, 255, 255, 0.9);
+                background: rgba(255, 255, 255, 0.09);
+                border: 1px solid rgba(255, 255, 255, 0.16);
+            }
+
+            .milestone__title {
+                margin: 0 0 8px;
+                font-size: clamp(17px, 1.5vw, 20px);
+                font-weight: 700;
+                letter-spacing: -0.015em;
+            }
+
+            .milestone__text {
+                margin: 0;
+                font-size: 13.5px;
+                line-height: 1.65;
+                color: var(--muted);
+            }
+
+            /* =========================================================
+           THE COLLECTION (Gallery Section)
+        ========================================================= */
+            .gallery-section {
+                position: relative;
+                z-index: 2;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                padding: 60px 0;
+
+                /* Initial hidden state */
+                opacity: 0;
+                transform: translateY(40px);
+                transition: opacity 1.2s cubic-bezier(0.2, 0.8, 0.2, 1), transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+                pointer-events: none;
+            }
+
+            .gallery-section.is-visible {
+                opacity: 1;
+                transform: translateY(0);
+                pointer-events: auto;
+            }
+
+            .gallery-header {
+                text-align: center;
+                margin-bottom: 30px;
+                padding: 0 24px;
+            }
+
+            .gallery-header h2 {
+                margin: 0 0 16px;
+                font-size: clamp(36px, 6vw, 56px);
+                font-weight: 800;
+                letter-spacing: -0.03em;
+            }
+
+            .gallery-header p {
+                margin: 0;
+                color: var(--muted);
+                font-size: clamp(14px, 1.5vw, 16px);
+                letter-spacing: 0.02em;
+            }
+
+            /* Carousel Stage */
+            .stage {
+                position: relative;
+                width: 100%;
+                height: clamp(340px, 58vh, 450px);
+                display: flex;
+                align-items: center;
+            }
+
+            .track {
+                position: relative;
+                display: flex;
+                align-items: center;
+                gap: var(--gap);
+                width: 100%;
+                height: 100%;
+                padding-block: 16px;
+                padding-inline: calc(50% - var(--card-w) / 2);
+                overflow-x: auto;
+                overflow-y: hidden;
+                overscroll-behavior-x: contain;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+                cursor: grab;
+                user-select: none;
+                -webkit-user-select: none;
+                touch-action: pan-x;
+            }
+
+            .track::-webkit-scrollbar {
+                display: none;
+            }
+
+            .track.dragging {
+                cursor: grabbing;
+            }
+
+            /* Card */
+            .card {
+                position: relative;
+                flex: 0 0 var(--card-w);
+                height: 100%;
+                border-radius: 30px;
+                padding: 26px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                overflow: hidden;
+                isolation: isolate;
+                color: #fff;
+                background-color: #111;
+                /* Fallback */
+
+                /* JS driven focus vars */
+                --blur: 0px;
+                --scale: 1;
+                --op: 1;
+                --bright: 1;
+
+                filter: blur(var(--blur)) brightness(var(--bright));
+                opacity: var(--op);
+                transform: scale(var(--scale));
+                transform-origin: center center;
+
+                box-shadow:
+                    0 34px 70px -30px var(--glow, rgba(0, 0, 0, 0.85)),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+                    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+
+                transition: box-shadow 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            }
+
+            .card.is-active {
+                box-shadow:
+                    0 48px 100px -34px var(--glow, rgba(0, 0, 0, 0.9)),
+                    0 0 0 1px rgba(255, 255, 255, 0.10),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+                    inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+            }
+
+            /* Image Layer */
+            .card__img {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                z-index: 0;
+                opacity: 0.75;
+                /* Blend with gradient background */
+                transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s ease;
+            }
+
+            .card.is-active .card__img {
+                opacity: 0.85;
+                transform: scale(1.05);
+                /* Subtle zoom on active */
+            }
+
+            /* Neural noise layer */
+            .card::after {
+                content: "";
+                position: absolute;
+                inset: -60%;
+                z-index: 2;
+                pointer-events: none;
+                opacity: 0.42;
+                mix-blend-mode: overlay;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+                animation: grain 6s steps(8) infinite;
+            }
+
+            /* Soft sheen + bottom scrim (crucial for text readability over images) */
+            .card::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                z-index: 1;
+                pointer-events: none;
+                background:
+                    radial-gradient(80% 55% at 50% -10%, rgba(255, 255, 255, 0.45), transparent 65%),
+                    linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.2) 50%, transparent 70%);
+            }
+
+            @keyframes grain {
+
+                0%,
+                100% {
+                    transform: translate(0, 0);
+                }
+
+                12% {
+                    transform: translate(-6%, -4%);
+                }
+
+                25% {
+                    transform: translate(4%, -8%);
+                }
+
+                37% {
+                    transform: translate(-3%, 6%);
+                }
+
+                50% {
+                    transform: translate(7%, 3%);
+                }
+
+                62% {
+                    transform: translate(-7%, -6%);
+                }
+
+                75% {
+                    transform: translate(5%, 7%);
+                }
+
+                87% {
+                    transform: translate(-4%, 2%);
+                }
+            }
+
+            /* Card content */
+            .card__top,
+            .card__bottom {
+                position: relative;
+                z-index: 3;
+            }
+
+            .card__top {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 12px;
+            }
+
+            .card__tag {
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.22em;
+                text-transform: uppercase;
+                padding: 7px 12px;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.16);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                white-space: nowrap;
+            }
+
+            .card__index {
+                font-size: clamp(38px, 5vw, 62px);
+                font-weight: 800;
+                line-height: 0.9;
+                letter-spacing: -0.04em;
+                opacity: 0.32;
+                font-variant-numeric: tabular-nums;
+            }
+
+            .card__title {
+                margin: 0 0 8px;
+                font-size: clamp(20px, 2vw, 25px);
+                font-weight: 700;
+                letter-spacing: -0.02em;
+                text-shadow: 0 2px 22px rgba(0, 0, 0, 0.8);
+            }
+
+            .card__sub {
+                margin: 0;
+                font-size: 13px;
+                line-height: 1.5;
+                color: rgba(255, 255, 255, 0.9);
+                max-width: 24ch;
+                text-shadow: 0 1px 10px rgba(0, 0, 0, 0.8);
+            }
+
+            /* Controls */
+            .controls {
+                position: relative;
+                z-index: 2;
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                max-width: 900px;
+                width: 100%;
+                margin: 40px auto 0;
+                padding: 0 clamp(20px, 6vw, 56px);
+            }
+
+            .nav-btn {
+                flex: 0 0 auto;
+                width: 46px;
+                height: 46px;
+                border-radius: 50%;
+                display: grid;
+                place-items: center;
+                cursor: pointer;
+                color: var(--fg);
+                background: rgba(255, 255, 255, 0.06);
+                border: 1px solid var(--line);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                transition: background 0.25s, transform 0.25s, opacity 0.25s;
+            }
+
+            .nav-btn:hover:not(:disabled) {
+                background: rgba(255, 255, 255, 0.15);
+                transform: translateY(-2px);
+            }
+
+            .nav-btn:active:not(:disabled) {
+                transform: scale(0.94);
+            }
+
+            .nav-btn:disabled {
+                opacity: 0.28;
+                cursor: default;
+            }
+
+            .nav-btn svg {
+                width: 17px;
+                height: 17px;
+            }
+
+            .progress {
+                flex: 1 1 auto;
+                height: 3px;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.1);
+                overflow: hidden;
+            }
+
+            .progress__bar {
+                height: 100%;
+                width: 0%;
+                border-radius: 999px;
+                background: linear-gradient(90deg, var(--accent-a), var(--accent-b), var(--accent-a));
+                box-shadow: 0 0 18px var(--accent-a);
+                transition: box-shadow 0.6s ease;
+            }
+
+            .counter {
+                flex: 0 0 auto;
+                font-size: 12px;
+                letter-spacing: 0.14em;
+                color: var(--muted);
+                font-variant-numeric: tabular-nums;
+                min-width: 62px;
+                text-align: right;
+            }
+
+            /* =========================================================
+           OPENSEA CALL TO ACTION
+        ========================================================= */
+            .cta-section {
+                position: relative;
+                z-index: 2;
+                padding: clamp(100px, 15vh, 160px) 24px;
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                overflow: hidden;
+            }
+
+            .cta__glow {
+                position: absolute;
+                width: 60vw;
+                height: 60vw;
+                max-width: 800px;
+                max-height: 800px;
+                background: radial-gradient(circle, var(--accent-a) 0%, transparent 60%);
+                opacity: 0.15;
+                filter: blur(80px);
+                border-radius: 50%;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                pointer-events: none;
+                z-index: 0;
+                transition: background 0.6s ease;
+            }
+
+            .cta__content {
+                position: relative;
+                z-index: 1;
+                max-width: 600px;
+                opacity: 0;
+                transform: translateY(30px);
+                transition: opacity 1.2s cubic-bezier(0.2, 0.8, 0.2, 1), transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            }
+
+            .cta__content.is-visible {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            .cta__content h2 {
+                margin: 0 0 20px;
+                font-size: clamp(32px, 5vw, 48px);
+                font-weight: 800;
+                letter-spacing: -0.03em;
+            }
+
+            .cta__content p {
+                margin: 0 0 40px;
+                font-size: clamp(15px, 1.5vw, 18px);
+                line-height: 1.6;
+                color: var(--muted);
+            }
+
+            .opensea-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                padding: 18px 36px;
+                border-radius: 100px;
+                font-size: 15px;
+                font-weight: 700;
+                letter-spacing: 0.04em;
+                text-decoration: none;
+                color: #07070c;
+                background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+                box-shadow: 0 10px 30px -10px var(--accent-a);
+                transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, background 0.6s ease;
+            }
+
+            .opensea-btn:hover {
+                transform: translateY(-4px) scale(1.02);
+                box-shadow: 0 20px 40px -10px var(--accent-a), 0 0 30px var(--accent-a);
+            }
+
+            .opensea-btn svg {
+                width: 22px;
+                height: 22px;
+                fill: currentColor;
+            }
+
+            /* =========================================================
+           Q&A SECTION
+        ========================================================= */
+            .faq-section {
+                position: relative;
+                z-index: 2;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: clamp(60px, 10vh, 120px) 24px;
+            }
+
+            .faq-header {
+                text-align: center;
+                margin-bottom: 50px;
+            }
+
+            .faq-header h2 {
+                margin: 0 0 16px;
+                font-size: clamp(32px, 5vw, 48px);
+                font-weight: 800;
+                letter-spacing: -0.03em;
+            }
+
+            .faq-header p {
+                margin: 0;
+                color: var(--muted);
+                font-size: 16px;
+            }
+
+            .faq-list {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .faq-item {
+                border-radius: 20px;
+                background: linear-gradient(155deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015));
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                overflow: hidden;
+                transition: border-color 0.4s ease, background 0.4s ease;
+            }
+
+            .faq-item.active {
+                border-color: rgba(255, 255, 255, 0.2);
+                background: linear-gradient(155deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+            }
+
+            .faq-question {
+                width: 100%;
+                padding: 24px 28px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 20px;
+                background: none;
+                border: none;
+                color: var(--fg);
+                font-family: inherit;
+                font-size: clamp(16px, 2vw, 18px);
+                font-weight: 600;
+                text-align: left;
+                cursor: pointer;
+                transition: color 0.3s ease;
+            }
+
+            .faq-question:hover {
+                color: var(--accent-a);
+            }
+
+            .faq-icon {
+                flex: 0 0 auto;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.06);
+                display: grid;
+                place-items: center;
+                transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.3s ease;
+            }
+
+            .faq-item.active .faq-icon {
+                transform: rotate(45deg);
+                background: rgba(255, 255, 255, 0.15);
+            }
+
+            .faq-icon svg {
+                width: 12px;
+                height: 12px;
+                stroke: currentColor;
+                stroke-width: 2.5;
+                fill: none;
+                transition: stroke 0.3s ease;
+            }
+
+            .faq-answer {
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            }
+
+            .faq-answer-inner {
+                padding: 0 28px 24px;
+                color: var(--muted);
+                font-size: 15px;
+                line-height: 1.7;
+                border-top: 1px solid rgba(255, 255, 255, 0.05);
+                margin: 0 28px;
+                padding-top: 20px;
+                padding-left: 0;
+                padding-right: 0;
+            }
+
+            /* =========================================================
+           RESPONSIVE
+        ========================================================= */
+            @media (max-width: 760px) {
+                .journey {
+                    height: auto;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                    padding: 10px 20px 40px;
+                }
+
+                .journey__svg,
+                .traveler {
+                    display: none;
+                }
+
+                .milestone {
+                    position: relative;
+                    left: auto;
+                    top: auto;
+                    width: auto;
+                    height: auto;
+                }
+
+                .milestone__dot {
+                    display: none;
+                }
+
+                .milestone__card {
+                    position: static;
+                    width: 100%;
+                    transform: none !important;
+                    opacity: 1;
+                    padding-left: 22px;
+                    border-left: 2px solid var(--accent-a);
+                    border-radius: 6px 22px 22px 6px;
+                }
+
+                .milestone__card::after {
+                    display: none;
+                }
+
+                .hint {
+                    display: none;
+                }
+
+                :root {
+                    --card-w: min(320px, 76vw);
+                }
+
+                .card {
+                    padding: 22px;
+                }
+
+                .controls {
+                    gap: 12px;
+                }
+
+                .counter {
+                    display: none;
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                html {
+                    scroll-behavior: auto;
+                }
+
+                .bg__blob,
+                .bg__layer {
+                    animation: none;
+                    transition: none;
+                }
+
+                .traveler::before {
+                    animation: none;
+                }
+
+                .card::after {
+                    animation: none;
+                }
+
+                .card,
+                .card__img {
+                    transition: none;
+                }
+
+                .gallery-section,
+                .cta__content,
+                .faq-item,
+                .faq-answer {
+                    transition: none;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <!-- Ambient Background Layers -->
+        <div class="bg" aria-hidden="true">
+            <div class="bg__blob bg__blob--1" id="blob1"></div>
+            <div class="bg__blob bg__blob--2" id="blob2"></div>
+            <div class="bg__layer" id="bgA"></div>
+            <div class="bg__layer" id="bgB"></div>
+            <div class="bg__grain"></div>
+        </div>
+
+        <!-- Nav -->
+        <header class="nav">
+            <div class="brand"><span class="dot"></span> Hydrew</div>
+            <div class="hint" id="navHint">Scroll to explore</div>
+        </header>
+
+        <main>
+
+            <!-- HERO -->
+            <section class="hero">
+                <p class="eyebrow">Why Hydrew</p>
+                <h1>We carry the <span class="grad">ultimate</span><br />hydration movement.</h1>
+                <p class="hero__lede">
+                    From the origin of life, a hyperactive droplet and a sleek bottle, and one idea we never let go of:
+                    raw nature and engineering must synergize. Follow the breakdown below to see the features that make
+                    Hydrew a must-have asset.
+                </p>
+            </section>
+
+            <!-- JOURNEY -->
+            <section class="journey" id="journey">
+                <svg class="journey__svg" id="journeySvg" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="pathGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stop-color="#a78bfa" />
+                            <stop offset="0.34" stop-color="#22d3ee" />
+                            <stop offset="0.68" stop-color="#f472b6" />
+                            <stop offset="1" stop-color="#fbbf24" />
+                        </linearGradient>
+                    </defs>
+                    <path id="pathGhost" class="path--ghost" fill="none" />
+                    <path id="pathDraw" class="path--draw" fill="none" />
+                </svg>
+
+                <div class="traveler" id="traveler" aria-hidden="true">
+                    <span class="traveler__core"></span>
+                </div>
+
+                <div class="milestone milestone--left" style="--x: 74%; --y: 14.5%">
+                    <span class="milestone__dot"></span>
+                    <div class="milestone__card">
+                        <span class="milestone__year">1</span>
+                        <h3 class="milestone__title">Composition & Origin</h3>
+                        <p class="milestone__text">Humans are 60% water, carrying an ancient ocean inside our cells that
+                            originally evolved 3.7 billion years ago.</p>
+                    </div>
+                </div>
+
+                <div class="milestone milestone--right" style="--x: 26%; --y: 37%">
+                    <span class="milestone__dot"></span>
+                    <div class="milestone__card">
+                        <span class="milestone__year">2</span>
+                        <h3 class="milestone__title">Survival Limit</h3>
+                        <p class="milestone__text">The body has 0 internal mechanisms to store water (unlike fat);
+                            running out triggers severe organ failure and death in just 3 days.</p>
+                    </div>
+                </div>
+
+                <div class="milestone milestone--left" style="--x: 74%; --y: 59%">
+                    <span class="milestone__dot"></span>
+                    <div class="milestone__card">
+                        <span class="milestone__year">3</span>
+                        <h3 class="milestone__title">Daily Baseline</h3>
+                        <p class="milestone__text">To transport nutrients and flush toxins, adult men need 13 cups
+                            (~3.0L) daily, and adult women need 9 cups (~2.2L).</p>
+                    </div>
+                </div>
+
+                <div class="milestone milestone--right" style="--x: 26%; --y: 81%">
+                    <span class="milestone__dot"></span>
+                    <div class="milestone__card">
+                        <span class="milestone__year">4</span>
+                        <h3 class="milestone__title">Special Stages</h3>
+                        <p class="milestone__text">Requirements increase to 10 cups (2.4L) during pregnancy and 13 cups
+                            (3.0L) during breastfeeding to sustain increased blood volume and milk production.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- THE COLLECTION (Carousel) -->
+            <section class="gallery-section" id="gallery">
+
+                <div class="gallery-header">
+                    <h2>The Collection</h2>
+                    <p>Scroll, drag, or use the arrows to explore.</p>
+                </div>
+
+                <div class="stage">
+                    <div class="track" id="track"></div>
+                </div>
+
+                <div class="controls">
+                    <button class="nav-btn" id="prev" aria-label="Previous card">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 18l-6-6 6-6" />
+                        </svg>
+                    </button>
+
+                    <div class="progress">
+                        <div class="progress__bar" id="bar"></div>
+                    </div>
+
+                    <div class="counter" id="counter">01 / 5</div>
+
+                    <button class="nav-btn" id="next" aria-label="Next card">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 18l6-6-6-6" />
+                        </svg>
+                    </button>
+                </div>
+            </section>
+
+            <!-- OPENSEA CALL TO ACTION -->
+            <section class="cta-section" id="cta">
+                <div class="cta__glow"></div>
+                <div class="cta__content" id="ctaContent">
+                    <h2>Own a piece of the journey.</h2>
+                    <p>Hydrew Dropping Soon!.</p>
+                    <a href="https://opensea.io" target="_blank" rel="noopener noreferrer" class="opensea-btn">
+                        <svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M45 0C20.15 0 0 20.15 0 45s20.15 45 45 45 45-20.15 45-45S69.85 0 45 0zM22.03 46.53l.23-.37 12.1-18.93c.17-.27.58-.22.68.08 2.01 6.39 3.75 14.33 2.94 19.26-.34 1.95-1.32 3.72-2.54 5.32-.14.18-.35.28-.57.28H22.26c-.36 0-.58-.39-.39-.7l.16-.27-.01.33zm49.81 7.17c0 .17-.1.32-.25.39-1.76.83-8.79 3.94-11.48 5.45-.25.14-.56.1-.78-.08-1.65-1.32-9.91-7.91-11.22-8.95-.13-.1-.2-.25-.2-.41v-7.49c0-.21.23-.35.42-.25l15.3 8.7c.15.08.33.08.48 0l7.13-4.05c.17-.1.4 0 .4.2v6.49z" />
+                        </svg>
+                        View on OpenSea
+                    </a>
+                </div>
+            </section>
+
+            <!-- Q&A SECTION -->
+            <section class="faq-section" id="faq">
+                <div class="faq-header">
+                    <h2>Questions & Answers</h2>
+                    <p>Everything you need to know about Hydrew.</p>
+                </div>
+
+                <div class="faq-list">
+                    <!-- Q1 -->
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            What is Hydrew?
+                            <span class="faq-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </span>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-inner">
+                                Hydrew is the "Ultimate Liquid Utility NFT," a next-generation, dynamically evolving NFT
+                                built on the blockchain. It bridges the gap between digital ownership and real-world
+                                sustainability, inspired by the synergy of raw nature (Water) and sleek engineering (The
+                                Shield).
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Q2 -->
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            What is the back-story behind the initiative?
+                            <span class="faq-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </span>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-inner">
+                                The concept is inspired by a story featuring Dewey, a hyperactive water droplet, and
+                                Hydro, a sleek stainless steel water bottle. Initially at odds, they realize they need
+                                each other: Dewey represents life and hydration, while Hydro provides the protective
+                                "armor" to keep him safe, cool, and useful.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Q3 -->
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            Why is the Hydrew initiative focused on hydration?
+                            <span class="faq-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </span>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-inner">
+                                Water is the foundation of life—the human body is approximately 60% water. It is
+                                essential for transporting nutrients, removing waste, and regulating temperature.
+                                Because humans cannot store water like fat, it is our most immediate daily biological
+                                dependency.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Q4 -->
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            How much water does a person actually need?
+                            <span class="faq-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </span>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-inner">
+                                It depends on age and lifestyle. Generally, adult men need about 13 cups (~3.0 Litres)
+                                daily, and adult women need about 9 cups (~2.2 Litres). Pregnant women need 10 cups, and
+                                breastfeeding women require up to 13 cups.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Q5 -->
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            What real-world problem does Hydrew aim to solve?
+                            <span class="faq-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </span>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-inner">
+                                Modern lifestyles make it hard to access clean water on the go, often leading to
+                                dehydration or reliance on single-use plastic bottles. Hydrew promotes the use of
+                                reusable water bottles to encourage regular hydration, provide convenience, and reduce
+                                environmental pollution.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Q6 -->
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            What makes the Hydrew NFT unique compared to other projects?
+                            <span class="faq-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </span>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-inner">
+                                It is not just "boring static pixel art." Hydrew is a dynamically evolving NFT that
+                                represents a movement toward a healthier lifestyle and environmental responsibility,
+                                connecting a biological necessity with digital ownership.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <script>
+            (() => {
+                "use strict";
+
+                /* ==================================================================
+                   1. Card Data (Now includes images)
+                ================================================================== */
+                const CARDS = [
+                    {
+                        index: "01", tag: "Common", title: "Cyber Hydrew", sub: "Retro Hydrew with electric energy.",
+                        image: "./0001.png",
+                        colors: ["#F5D6BD", "#202238", "#75452F", "#353B68", "#6878D8"], glow: "rgba(255, 62, 110, 0.55)"
+                    },
+                    {
+                        index: "02", tag: "Common", title: "Neon Hydrew", sub: "Cosmic Hydrew with neon energy.",
+                        image: "./0002.png",
+                        colors: ["#59372D", "#6B3828", "#75452F", "#353B68", "#6878D8"], glow: "rgba(33, 147, 176, 0.55)"
+                    },
+                    {
+                        index: "03", tag: "Rare", title: "Futuristic Hydrew", sub: "Explorer Hydrew with futuristic VR energy",
+                        image: "./0003.png",
+                        colors: ["#59372D", "#6B3828", "#55C8F2", "#245D4A", "#55A77B"], glow: "rgba(151, 71, 255, 0.6)"
+                    },
+                    {
+                        index: "04", tag: "Common", title: "Vibrant Hydrew", sub: "Adventurer Hydrew with a vibrant lavender aura.",
+                        image: "./0004.png",
+                        colors: ["#C9895B", "#202238", "#75452F", "#245A86", "#58BCE5"], glow: "rgba(0, 190, 160, 0.55)"
+                    },
+                    {
+                        index: "05", tag: "Epic", title: "Golden Hydrew", sub: "Hydrew with golden sunset energy.",
+                        image: "./0005.png",
+                        colors: ["#C9895B", "#8657C8", "#F8C84A", "#5A347F", "#C28BFA"], glow: "rgba(255, 167, 81, 0.6)"
+                    }
+                ];
+
+                /* ==================================================================
+                   2. Setup DOM Elements
+                ================================================================== */
+                const journey = document.getElementById("journey");
+                const svg = document.getElementById("journeySvg");
+                const pathGhost = document.getElementById("pathGhost");
+                const pathDraw = document.getElementById("pathDraw");
+                const traveler = document.getElementById("traveler");
+                const milestones = Array.from(document.querySelectorAll(".milestone"));
+
+                const gallerySection = document.getElementById("gallery");
+                const track = document.getElementById("track");
+                const bar = document.getElementById("bar");
+                const counter = document.getElementById("counter");
+                const prevBtn = document.getElementById("prev");
+                const nextBtn = document.getElementById("next");
+                const navHint = document.getElementById("navHint");
+
+                const ctaContent = document.getElementById("ctaContent");
+                const blob1 = document.getElementById("blob1");
+                const blob2 = document.getElementById("blob2");
+
+                const bgLayers = [document.getElementById("bgA"), document.getElementById("bgB")];
+                const root = document.documentElement;
+
+                /* ==================================================================
+                   3. Build Gallery Cards (Updated with image tag)
+                ================================================================== */
+                const frag = document.createDocumentFragment();
+                CARDS.forEach((data) => {
+                    const [c1, c2, c3, c4] = data.colors;
+                    const card = document.createElement("article");
+                    card.className = "card";
+
+                    // Fallback gradient background
+                    card.style.background = `
+                  radial-gradient(120% 100% at 12% 6%,  ${c1} 0%, transparent 58%),
+                  radial-gradient(120% 100% at 88% 94%, ${c2} 0%, transparent 58%),
+                  linear-gradient(150deg, ${c3} 0%, ${c4} 100%)`;
+                    card.style.setProperty("--glow", data.glow);
+
+                    card.innerHTML = `
+                  <img src="${data.image}" alt="${data.title}" class="card__img" loading="lazy" />
+                  <div class="card__top">
+                    <span class="card__index">${data.index}</span>
+                    <span class="card__tag">${data.tag}</span>
+                  </div>
+                  <div class="card__bottom">
+                    <h2 class="card__title">${data.title}</h2>
+                    <p class="card__sub">${data.sub}</p>
+                  </div>
+                `;
+                    frag.appendChild(card);
+                });
+                track.appendChild(frag);
+                const cards = Array.from(track.querySelectorAll(".card"));
+
+                /* ==================================================================
+                   4. Dynamic Background Logic (Gallery)
+                ================================================================== */
+                let bgFront = 0;
+                let themeIndex = -1;
+
+                function hexToRgba(hex, alpha) {
+                    let h = hex.replace("#", "");
+                    if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+                    const n = parseInt(h, 16);
+                    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+                }
+
+                function paintBackground(colors) {
+                    const back = bgLayers[1 - bgFront];
+                    back.style.setProperty("--c1", hexToRgba(colors[1], 0.30));
+                    back.style.setProperty("--c2", hexToRgba(colors[2], 0.26));
+                    back.style.setProperty("--c3", hexToRgba(colors[0], 0.10));
+                    void back.offsetWidth;
+                    back.classList.add("is-on");
+                    bgLayers[bgFront].classList.remove("is-on");
+                    bgFront = 1 - bgFront;
+                }
+
+                function applyTheme(i) {
+                    if (i === themeIndex) return;
+                    themeIndex = i;
+                    const data = CARDS[i];
+                    paintBackground(data.colors);
+                    root.style.setProperty("--accent-a", data.colors[0]);
+                    root.style.setProperty("--accent-b", data.colors[1]);
+                }
+
+                /* ==================================================================
+                   5. SVG Journey Logic
+                ================================================================== */
+                let W = 0, H = 0, len = 0, isStacked = false;
+
+                function buildD(w, h) {
+                    const X = (f) => (f * w).toFixed(2);
+                    const Y = (f) => (f * h).toFixed(2);
+                    return [
+                        `M ${X(0.50)} ${Y(0)}`,
+                        `C ${X(0.82)} ${Y(0.09)}, ${X(0.82)} ${Y(0.21)}, ${X(0.50)} ${Y(0.26)}`,
+                        `C ${X(0.18)} ${Y(0.31)}, ${X(0.18)} ${Y(0.43)}, ${X(0.50)} ${Y(0.48)}`,
+                        `C ${X(0.82)} ${Y(0.53)}, ${X(0.82)} ${Y(0.65)}, ${X(0.50)} ${Y(0.70)}`,
+                        `C ${X(0.18)} ${Y(0.75)}, ${X(0.18)} ${Y(0.87)}, ${X(0.50)} ${Y(0.92)}`,
+                        `L ${X(0.50)} ${Y(1)}`
+                    ].join(" ");
+                }
+
+                function measureJourney() {
+                    const rect = journey.getBoundingClientRect();
+                    W = Math.round(rect.width);
+                    H = Math.round(rect.height);
+                    isStacked = window.matchMedia("(max-width: 760px)").matches;
+
+                    if (!W || !H || isStacked) {
+                        len = 0;
+                        return;
+                    }
+
+                    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+                    const d = buildD(W, H);
+                    pathGhost.setAttribute("d", d);
+                    pathDraw.setAttribute("d", d);
+
+                    len = pathDraw.getTotalLength();
+                    pathDraw.style.strokeDasharray = len;
+                    pathDraw.style.strokeDashoffset = len;
+
+                    updateJourney();
+                }
+
+                function updateJourney() {
+                    if (!len || !W || !H) return;
+
+                    const vh = window.innerHeight;
+                    const rect = journey.getBoundingClientRect();
+
+                    const startY = vh * 0.78;
+                    const endY = vh * 0.22;
+                    const travel = startY - rect.top;
+                    const total = (startY - endY) + rect.height;
+
+                    const p = Math.max(0, Math.min(1, travel / total));
+
+                    pathDraw.style.strokeDashoffset = (len * (1 - p)).toFixed(2);
+
+                    const pt = pathDraw.getPointAtLength(len * p);
+                    traveler.style.left = (pt.x / W * 100).toFixed(3) + "%";
+                    traveler.style.top = (pt.y / H * 100).toFixed(3) + "%";
+                    traveler.style.opacity = p > 0.004 && p < 0.996 ? "1" : "0";
+
+                    for (const m of milestones) {
+                        const y = parseFloat(m.style.getPropertyValue("--y")) / 100;
+                        m.classList.toggle("is-lit", p >= y - 0.004);
+                    }
+
+                    // Reveal gallery smoothly when path finishes
+                    if (p > 0.98) {
+                        if (!gallerySection.classList.contains("is-visible")) {
+                            gallerySection.classList.add("is-visible");
+                            navHint.textContent = "Click a card · Drag · Wheel · ← →";
+                            blob1.classList.add("is-hidden");
+                            blob2.classList.add("is-hidden");
+                            if (themeIndex === -1) applyTheme(0);
+                            // Wait a tick for layout to settle before measuring
+                            setTimeout(measureGallery, 50);
+                        }
+                    } else {
+                        if (gallerySection.classList.contains("is-visible")) {
+                            gallerySection.classList.remove("is-visible");
+                            navHint.textContent = "Scroll to explore";
+                            blob1.classList.remove("is-hidden");
+                            blob2.classList.remove("is-hidden");
+                        }
+                    }
+                }
+
+                /* ==================================================================
+                   6. Gallery Logic
+                ================================================================== */
+                let centers = [];
+                let activeIndex = 0;
+                let activeCard = -1;
+                let dragging = false;
+                let didDrag = false;
+                let snapping = false;
+                let snapTarget = null;
+                let wheelLocked = false;
+
+                const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+                const pad2 = (n) => String(n).padStart(2, "0");
+
+                function measureGallery() {
+                    centers = cards.map((c) => c.offsetLeft + c.offsetWidth / 2);
+                    updateFocus();
+                    updateBar();
+                }
+
+                const targetFor = (i) => centers[i] - track.clientWidth / 2;
+
+                function nearestIndex() {
+                    const viewCentre = track.scrollLeft + track.clientWidth / 2;
+                    let best = 0;
+                    let bestDist = Infinity;
+                    for (let i = 0; i < centers.length; i++) {
+                        const d = Math.abs(centers[i] - viewCentre);
+                        if (d < bestDist) { bestDist = d; best = i; }
+                    }
+                    return best;
+                }
+
+                function updateFocus() {
+                    if (!centers.length) return;
+                    const vw = track.clientWidth;
+                    const half = vw / 2;
+                    const scroll = track.scrollLeft;
+                    const falloff = Math.max(1, vw * 0.5);
+
+                    let nearest = 0;
+                    let nearestD = Infinity;
+
+                    for (let i = 0; i < cards.length; i++) {
+                        const dist = Math.abs(centers[i] - scroll - half);
+                        if (dist < nearestD) { nearestD = dist; nearest = i; }
+
+                        const t = Math.min(1, dist / falloff);
+                        const e = t * t;
+                        const card = cards[i];
+
+                        card.style.setProperty("--blur", (e * 10).toFixed(2) + "px");
+                        card.style.setProperty("--scale", (1 - t * 0.12).toFixed(4));
+                        card.style.setProperty("--op", (1 - t * 0.72).toFixed(3));
+                        card.style.setProperty("--bright", (1 - t * 0.30).toFixed(3));
+                    }
+
+                    if (nearest !== activeIndex) {
+                        activeIndex = nearest;
+                        applyTheme(activeIndex);
+                        updateControls();
+                    }
+
+                    const centredIdx = nearestD < 22 ? nearest : -1;
+                    if (centredIdx !== activeCard) {
+                        if (activeCard >= 0) cards[activeCard].classList.remove("is-active");
+                        if (centredIdx >= 0) cards[centredIdx].classList.add("is-active");
+                        activeCard = centredIdx;
+                    }
+                }
+
+                function updateBar() {
+                    const max = track.scrollWidth - track.clientWidth;
+                    bar.style.width = max > 0 ? clamp((track.scrollLeft / max) * 100, 0, 100).toFixed(2) + "%" : "0%";
+                }
+
+                function updateControls() {
+                    counter.textContent = pad2(activeIndex + 1) + " / " + pad2(cards.length);
+                    prevBtn.disabled = activeIndex <= 0;
+                    nextBtn.disabled = activeIndex >= cards.length - 1;
+                    updateBar();
+                }
+
+                function goTo(i, behavior = "smooth") {
+                    i = clamp(i, 0, cards.length - 1);
+                    if (!centers.length) return;
+                    const target = targetFor(i);
+                    if (Math.abs(target - track.scrollLeft) < 1) { snapping = false; return; }
+                    snapping = true;
+                    snapTarget = target;
+                    track.scrollTo({ left: target, behavior });
+                }
+
+                function settle() {
+                    if (dragging || !centers.length) return;
+                    const target = targetFor(nearestIndex());
+                    if (Math.abs(track.scrollLeft - target) < 1.5) { snapping = false; return; }
+                    if (snapping && Math.abs(snapTarget - target) < 1) return;
+                    snapping = true;
+                    snapTarget = target;
+                    track.scrollTo({ left: target, behavior: "smooth" });
+                }
+
+                let settleTimer = null;
+                function scheduleSettle(delay = 130) {
+                    clearTimeout(settleTimer);
+                    settleTimer = setTimeout(settle, delay);
+                }
+
+                /* Gallery Events */
+                let tickingGallery = false;
+                track.addEventListener("scroll", () => {
+                    if (!tickingGallery) {
+                        tickingGallery = true;
+                        requestAnimationFrame(() => {
+                            updateFocus();
+                            updateBar();
+                            tickingGallery = false;
+                        });
+                    }
+                    scheduleSettle();
+                }, { passive: true });
+
+                prevBtn.addEventListener("click", () => goTo(activeIndex - 1));
+                nextBtn.addEventListener("click", () => goTo(activeIndex + 1));
+
+                track.addEventListener("wheel", (e) => {
+                    // If the gallery isn't fully visible, let the page scroll naturally
+                    if (!gallerySection.classList.contains("is-visible")) return;
+
+                    // Let vertical page scrolling work if we're not at the bottom
+                    const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 10;
+                    if (e.deltaY > 0 && !isAtBottom) return;
+
+                    e.preventDefault();
+                    if (wheelLocked) return;
+
+                    const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+                    if (Math.abs(delta) < 4) return;
+
+                    wheelLocked = true;
+                    goTo(activeIndex + (delta > 0 ? 1 : -1));
+                    setTimeout(() => { wheelLocked = false; }, 420);
+                }, { passive: false });
+
+                let startX = 0, startScroll = 0, pointerId = null;
+                track.addEventListener("pointerdown", (e) => {
+                    if (e.pointerType !== "mouse" || e.button !== 0) return;
+                    dragging = true; didDrag = false; startX = e.clientX; startScroll = track.scrollLeft;
+                    pointerId = e.pointerId; snapping = false;
+                    track.classList.add("dragging");
+                    track.setPointerCapture(pointerId);
+                });
+
+                track.addEventListener("pointermove", (e) => {
+                    if (!dragging || e.pointerId !== pointerId) return;
+                    const dx = e.clientX - startX;
+                    if (Math.abs(dx) > 6) didDrag = true;
+                    track.scrollLeft = startScroll - dx;
+                });
+
+                function endDrag() {
+                    if (!dragging) return;
+                    dragging = false;
+                    track.classList.remove("dragging");
+                    if (pointerId !== null && track.hasPointerCapture(pointerId)) track.releasePointerCapture(pointerId);
+                    pointerId = null;
+                    scheduleSettle(60);
+                }
+                track.addEventListener("pointerup", endDrag);
+                track.addEventListener("pointercancel", endDrag);
+
+                cards.forEach((card, i) => {
+                    card.addEventListener("click", () => {
+                        if (didDrag) { didDrag = false; return; }
+                        goTo(i);
+                    });
+                });
+
+                /* ==================================================================
+                   7. Q&A Accordion Logic
+                ================================================================== */
+                const faqQuestions = document.querySelectorAll('.faq-question');
+
+                faqQuestions.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const item = button.parentElement;
+                        const answer = item.querySelector('.faq-answer');
+                        const isOpen = item.classList.contains('active');
+
+                        // Close all other items
+                        document.querySelectorAll('.faq-item').forEach(otherItem => {
+                            if (otherItem !== item && otherItem.classList.contains('active')) {
+                                otherItem.classList.remove('active');
+                                otherItem.querySelector('.faq-answer').style.maxHeight = null;
+                            }
+                        });
+
+                        // Toggle current item
+                        if (isOpen) {
+                            item.classList.remove('active');
+                            answer.style.maxHeight = null;
+                        } else {
+                            item.classList.add('active');
+                            answer.style.maxHeight = answer.scrollHeight + "px";
+                        }
+                    });
+                });
+
+                /* ==================================================================
+                   8. Global Listeners & Init
+                ================================================================== */
+                window.addEventListener("keydown", (e) => {
+                    if (!gallerySection.classList.contains("is-visible")) return;
+                    if (e.key === "ArrowRight") { e.preventDefault(); goTo(activeIndex + 1); }
+                    if (e.key === "ArrowLeft") { e.preventDefault(); goTo(activeIndex - 1); }
+                    if (e.key === "Home") { e.preventDefault(); goTo(0); }
+                    if (e.key === "End") { e.preventDefault(); goTo(cards.length - 1); }
+                });
+
+                let rafPending = false;
+                function requestUpdate() {
+                    if (rafPending) return;
+                    rafPending = true;
+                    requestAnimationFrame(() => {
+                        updateJourney();
+                        rafPending = false;
+                    });
+                }
+
+                window.addEventListener("scroll", requestUpdate, { passive: true });
+
+                window.addEventListener("resize", () => {
+                    measureJourney();
+                    if (gallerySection.classList.contains("is-visible")) {
+                        measureGallery();
+                    }
+                    // Recalculate open FAQ max heights on resize
+                    document.querySelectorAll('.faq-item.active').forEach(item => {
+                        const answer = item.querySelector('.faq-answer');
+                        answer.style.maxHeight = answer.scrollHeight + "px";
+                    });
+                });
+
+                if ("ResizeObserver" in window) {
+                    new ResizeObserver(() => {
+                        measureJourney();
+                        setTimeout(() => {
+                            if (gallerySection.classList.contains("is-visible")) measureGallery();
+                        }, 100);
+                    }).observe(journey);
+                }
+
+                // Reveal CTA when it comes into view
+                if ("IntersectionObserver" in window) {
+                    const ctaObserver = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                entry.target.classList.add("is-visible");
+                                ctaObserver.unobserve(entry.target); // Only reveal once
+                            }
+                        });
+                    }, { threshold: 0.2 });
+                    ctaObserver.observe(ctaContent);
+                } else {
+                    // Fallback for older browsers
+                    ctaContent.classList.add("is-visible");
+                }
+
+                const boot = () => {
+                    measureJourney();
+                    requestUpdate();
+                    setTimeout(() => {
+                        if (gallerySection.classList.contains("is-visible")) measureGallery();
+                    }, 1200);
+                };
+
+                if (document.readyState === "complete") boot();
+                else window.addEventListener("load", boot);
+                requestAnimationFrame(boot);
+
+            })();
+        </script>
+    </body>
+
+</html>
